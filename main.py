@@ -1,6 +1,24 @@
 from fastapi import FastAPI
 
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
 app = FastAPI(title="API do Sistema Alimentício")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
+)
+
+# Mantenham a lista 'matriculas' e as rotas GET
+# que vocês já criaram abaixo deste trecho.
+
+
 
 matriculas = [
     { "id": 1, "MatriculaAluno": "20211gestao.tmn0001", "Nome": "Beatriz Lima", "Idade": 21, "Turma": "Gestão" },
@@ -8,6 +26,14 @@ matriculas = [
     { "id": 3, "MatriculaAluno": "20241ed.tmn0003", "Nome": "Mariana Souza", "Idade": 17, "Turma": "Edificação" },
     { "id": 4, "MatriculaAluno": "20221inf.tmn0066", "Nome": "Lucas Gabriel", "Idade": 19, "Turma": "Informática" }
 ]
+
+
+class AlunoNovo(BaseModel):
+    MatriculaAluno: str
+    Nome: str
+    Idade: int
+    Turma: str
+
 
 @app.get("/")
 def inicio():
@@ -66,19 +92,22 @@ def buscar_por_Idade(Idade: int):
     return { "erro": "Idade não encontrada" }
 
 #rotas post
-@app.post("/matriculas")
-def adicionar_aluno(MatriculaAluno: str, Nome: str, Idade: int, Turma: str):
-    novo_id = matriculas[-1]["id"] + 1 if matriculas else 1
-    
+
+@app.post("/matriculas", status_code=201)
+def adicionar_aluno(aluno: AlunoNovo):
+    novo_id = max(
+        (m["id"] for m in matriculas),
+        default=0
+    ) + 1
+
     novo_aluno = {
         "id": novo_id,
-        "MatriculaAluno": MatriculaAluno,
-        "Nome": Nome,
-        "Idade": Idade,
-        "Turma": Turma
+        **aluno.model_dump()
     }
+
     matriculas.append(novo_aluno)
+
     return {
-        "mensagem": "Novo(a) aluno(a) adicionado confira:",
+        "mensagem": "Aluno cadastrado com sucesso!",
         "aluno_adicionado": novo_aluno
     }
